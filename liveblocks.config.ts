@@ -17,6 +17,7 @@ type Storage = {
   output: string;
   hasError: boolean;
   isRunning: boolean;
+  isVideoCallActive: boolean;
 };
 
 type UserMeta = {

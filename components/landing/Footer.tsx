@@ -12,7 +12,7 @@ export default function Footer() {
             <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
               <Code2 className="w-5 h-5 text-white" />
             </div>
-            <span className="text-white font-bold text-xl">CodeSync</span>
+            <span className="text-white font-bold text-xl">Collabrix</span>
           </Link>
 
           {/* Links */}
@@ -30,7 +30,7 @@ export default function Footer() {
 
           {/* Copyright */}
           <p className="text-gray-500 text-sm">
-            © 2026 CodeSync. Built for placement prep.
+            © 2026 Collabrix. Built for placement prep.
           </p>
         </div>
       </div>

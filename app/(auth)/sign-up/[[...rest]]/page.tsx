@@ -6,7 +6,7 @@ export default function SignUpPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">Create Account</h1>
-          <p className="text-gray-400 mt-2">Join CodeSync today</p>
+          <p className="text-gray-400 mt-2">Join Collabrix today</p>
         </div>
         <SignUp
           appearance={{

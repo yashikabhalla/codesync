@@ -30,6 +30,10 @@ const languages = [
   { value: "c", label: "C" },
   { value: "go", label: "Go" },
   { value: "rust", label: "Rust" },
+  { value: "kotlin", label: "Kotlin" },
+  { value: "swift", label: "Swift" },
+  { value: "php", label: "PHP" },
+  { value: "ruby", label: "Ruby" },
 ];
 
 export default function CreateRoom() {

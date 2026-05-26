@@ -19,6 +19,10 @@ const languageMap: Record<string, string> = {
   c: "c",
   go: "go",
   rust: "rust",
+  kotlin: "kotlin",
+  swift: "swift",
+  php: "php",
+  ruby: "ruby",
 };
 
 export default function CollaborativeEditor({

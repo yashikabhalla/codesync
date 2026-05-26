@@ -41,22 +41,38 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-black">
 
       {/* Navbar */}
-      <nav className="border-b border-white/10 bg-black/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
-              <Code2 className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-white font-bold text-xl">CodeSync</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-400 text-sm">
-              Hey, {clerkUser.firstName}! 👋
-            </span>
-            <UserButton afterSignOutUrl="/" />
-          </div>
+<nav className="border-b border-white/10 bg-black/80 backdrop-blur-md sticky top-0 z-50">
+  <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div className="flex items-center gap-6">
+      <Link href="/" className="flex items-center gap-2">
+        <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
+          <Code2 className="w-5 h-5 text-white" />
         </div>
-      </nav>
+        <span className="text-white font-bold text-xl">Collabrix</span>
+      </Link>
+
+      {/* Nav Links */}
+      <div className="hidden md:flex items-center gap-6">
+        <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
+          Home
+        </Link>
+        <Link href="/#features" className="text-gray-400 hover:text-white text-sm transition-colors">
+          Features
+        </Link>
+        <Link href="/#pricing" className="text-gray-400 hover:text-white text-sm transition-colors">
+          Pricing
+        </Link>
+      </div>
+    </div>
+
+    <div className="flex items-center gap-4">
+      <span className="text-gray-400 text-sm hidden md:block">
+        Hey, {clerkUser.firstName}! 👋
+      </span>
+      <UserButton afterSignOutUrl="/" />
+    </div>
+  </div>
+</nav>
 
       <div className="max-w-7xl mx-auto px-4 py-12">
 
@@ -84,12 +100,12 @@ export default async function DashboardPage() {
               bg: "bg-violet-400/10",
             },
             {
-              icon: Users,
-              label: "Collaborators",
-              value: "∞",
-              color: "text-blue-400",
-              bg: "bg-blue-400/10",
-            },
+  icon: Users,
+  label: "Collaborators",
+  value: rooms.length > 0 ? `${rooms.length * 2}` : "0",
+  color: "text-blue-400",
+  bg: "bg-blue-400/10",
+},
             {
               icon: Trophy,
               label: "Problems Solved",

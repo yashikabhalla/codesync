@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Copy,
   Check,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -39,6 +40,8 @@ interface Props {
   onRunCode: () => void;
   isRunning: boolean;
   presenceIndicators?: React.ReactNode;
+  onVideoToggle: () => void;
+  isVideoOn: boolean;
 }
 
 export default function Toolbar({
@@ -49,6 +52,8 @@ export default function Toolbar({
   onRunCode,
   isRunning,
   presenceIndicators,
+  onVideoToggle,
+  isVideoOn,
 }: Props) {
   const [copied, setCopied] = useState(false);
 
@@ -136,6 +141,22 @@ export default function Toolbar({
       {/* Right Side */}
 <div className="flex items-center gap-3">
     {presenceIndicators}
+          {/* Video Call Button */}
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={onVideoToggle}
+  className={`gap-2 hidden md:flex ${
+    isVideoOn
+      ? "text-violet-400 bg-violet-400/10"
+      : "text-gray-400 hover:text-white"
+  }`}
+>
+  <Video className="w-3 h-3" />
+  <span className="text-xs">
+    {isVideoOn ? "End Video" : "Start Video"}
+  </span>
+</Button>
         <Button
           variant="ghost"
           size="sm"

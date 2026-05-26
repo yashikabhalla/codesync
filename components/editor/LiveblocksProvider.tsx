@@ -26,11 +26,12 @@ export default function LiveblocksRoomProvider({
         avatar: "",
       }}
       initialStorage={{
-        code: initialCode,
-        output: "",
-        hasError: false,
-        isRunning: false,
-      }}
+  code: initialCode,
+  output: "",
+  hasError: false,
+  isRunning: false,
+  isVideoCallActive: false,
+}}
     >
       <ClientSideSuspense
         fallback={

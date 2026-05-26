@@ -6,7 +6,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CodeSync — Real-Time Collaborative Code Editor",
+  title: "Collabrix — Real-Time Collaborative Code Editor",
   description: "Code together, interview together",
 };
 

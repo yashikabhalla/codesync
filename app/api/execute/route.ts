@@ -9,6 +9,10 @@ const languageMap: Record<string, { language: string; versionIndex: string }> = 
   c: { language: "c", versionIndex: "5" },
   go: { language: "go", versionIndex: "4" },
   rust: { language: "rust", versionIndex: "4" },
+  kotlin: { language: "kotlin", versionIndex: "3" },
+  swift: { language: "swift", versionIndex: "4" },
+  php: { language: "php", versionIndex: "4" },
+  ruby: { language: "ruby", versionIndex: "4" },
 };
 
 export async function POST(req: Request) {

@@ -1,5 +1,5 @@
 {
-  "name": "codesync",
+  "name": "collabrix",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.4.1",
+    "@daily-co/daily-js": "^0.87.0",
+    "@daily-co/daily-react": "^0.25.2",
+    "@jitsi/react-sdk": "^1.4.4",
     "@liveblocks/client": "^3.19.3",
     "@liveblocks/node": "^3.19.3",
     "@liveblocks/react": "^3.19.3",
