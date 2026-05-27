@@ -41,3 +41,12 @@ model Submission {
   user      User     @relation(fields: [userId], references: [clerkId])
   room      Room     @relation(fields: [roomId], references: [id])
 }
+
+model SolvedProblem {
+  id        String   @id @default(cuid())
+  userId    String
+  problemId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, problemId])
+}

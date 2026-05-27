@@ -1,6 +1,5 @@
 "use client";
-
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Toolbar from "./Toolbar";
 import CollaborativeEditor from "./CollaborativeEditor";
 import Output from "./Output";
@@ -10,6 +9,7 @@ import LiveblocksRoomProvider from "./LiveblocksProvider";
 import VideoCall from "./VideoCall";
 import { Button } from "@/components/ui/button";
 import { useStorage, useMutation } from "@/liveblocks.config";
+import AIChat from "./AIChat";
 
 interface Room {
   id: string;
@@ -33,13 +33,17 @@ function RoomContent({ room, user }: Props) {
   const [code, setCode] = useState("");
   const [showVideo, setShowVideo] = useState(false);
 
-  // Get from Liveblocks storage
+  // Resizable output state
+  const [outputHeight, setOutputHeight] = useState(176);
+  const isDragging = useRef(false);
+  const dragStartY = useRef(0);
+  const dragStartHeight = useRef(176);
+
   const isVideoCallActive = useStorage((root) => root.isVideoCallActive) ?? false;
   const output = useStorage((root) => root.output) ?? "";
   const outputError = useStorage((root) => root.hasError) ?? false;
   const isRunning = useStorage((root) => root.isRunning) ?? false;
 
-  // Update output in Liveblocks storage
   const updateOutput = useMutation(
     ({ storage }, newOutput: string, hasError: boolean) => {
       storage.set("output", newOutput);
@@ -56,17 +60,47 @@ function RoomContent({ room, user }: Props) {
   );
 
   const updateVideoCall = useMutation(
-  ({ storage }, active: boolean) => {
-    storage.set("isVideoCallActive", active);
-  },
-  []
-);
+    ({ storage }, active: boolean) => {
+      storage.set("isVideoCallActive", active);
+    },
+    []
+  );
 
-const handleVideoToggle = () => {
-  const newState = !showVideo;
-  setShowVideo(newState);
-  updateVideoCall(newState);
-};
+  // Drag resize logic
+  const onDragMouseDown = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true;
+    dragStartY.current = e.clientY;
+    dragStartHeight.current = outputHeight;
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+  }, [outputHeight]);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = dragStartY.current - e.clientY; // drag up = taller output
+      const newHeight = Math.min(500, Math.max(48, dragStartHeight.current + delta));
+      setOutputHeight(newHeight);
+    };
+    const onMouseUp = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
+  const handleVideoToggle = () => {
+    const newState = !showVideo;
+    setShowVideo(newState);
+    updateVideoCall(newState);
+  };
 
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode);
@@ -109,73 +143,81 @@ const handleVideoToggle = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="h-screen bg-black flex flex-col overflow-hidden">
       {/* Live Cursors */}
       <LiveCursors />
 
       {/* Video Call Notification */}
-{isVideoCallActive && !showVideo && (
-  <div className="bg-violet-600/20 border-b border-violet-500/30 px-4 py-2 flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <div className="w-2 h-2 bg-violet-400 rounded-full animate-pulse" />
-      <span className="text-violet-300 text-sm">
-        Someone started a video call!
-      </span>
-    </div>
-    <Button
-      size="sm"
-      onClick={handleVideoToggle}
-      className="bg-violet-600 hover:bg-violet-700 text-white h-7 text-xs"
-    >
-      Join Video Call
-    </Button>
-  </div>
-)}
+      {isVideoCallActive && !showVideo && (
+        <div className="bg-violet-600/20 border-b border-violet-500/30 px-4 py-2 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-violet-400 rounded-full animate-pulse" />
+            <span className="text-violet-300 text-sm">
+              Someone started a video call!
+            </span>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleVideoToggle}
+            className="bg-violet-600 hover:bg-violet-700 text-white h-7 text-xs"
+          >
+            Join Video Call
+          </Button>
+        </div>
+      )}
 
       {/* Toolbar */}
       <Toolbar
-  room={room}
-  user={user}
-  language={language}
-  onLanguageChange={handleLanguageChange}
-  onRunCode={handleRunCode}
-  isRunning={isRunning}
-  presenceIndicators={<PresenceIndicators />}
-  onVideoToggle={handleVideoToggle}
-  isVideoOn={showVideo}
-/>
+        room={room}
+        user={user}
+        language={language}
+        onLanguageChange={handleLanguageChange}
+        onRunCode={handleRunCode}
+        isRunning={isRunning}
+        presenceIndicators={<PresenceIndicators />}
+        onVideoToggle={handleVideoToggle}
+        isVideoOn={showVideo}
+      />
 
-      {/* Editor + Right Panel */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      {/* Main Area */}
+      <div className="flex-1 flex overflow-hidden">
 
-        {/* Code Editor - Left */}
-        <div className="flex-1 overflow-hidden">
-          <CollaborativeEditor
-            language={language}
-            onCodeChange={handleCodeChange}
-            user={{
-              name: user.name,
-              avatar: user.avatar,
-              color: getRandomColor(),
-            }}
-          />
-        </div>
+        {/* Left Side — Editor + Resizable Output */}
+        <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Right Panel */}
-        <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col">
-
-          {/* Video Call */}
-          {showVideo && (
-            <div className="h-64 border-b border-white/10 flex-shrink-0">
-              <VideoCall
-                roomId={room.id}
-                onClose={() => setShowVideo(false)}
-              />
-            </div>
-          )}
-
-          {/* Output */}
+          {/* Editor — takes all remaining space */}
           <div className="flex-1 overflow-hidden">
+            <CollaborativeEditor
+              language={language}
+              onCodeChange={handleCodeChange}
+              user={{
+                name: user.name,
+                avatar: user.avatar,
+                color: getRandomColor(),
+              }}
+            />
+          </div>
+
+          {/* Drag Handle */}
+          <div
+            onMouseDown={onDragMouseDown}
+            className="h-[5px] flex-shrink-0 border-t border-white/10 flex items-center justify-center cursor-row-resize group relative select-none z-10"
+          >
+            {/* Grip dots */}
+            <div className="flex gap-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              <div className="w-6 h-[2px] rounded-full bg-violet-400/80" />
+              <div className="w-6 h-[2px] rounded-full bg-violet-400/80" />
+              <div className="w-6 h-[2px] rounded-full bg-violet-400/80" />
+            </div>
+            {/* Hover highlight */}
+            <div className="absolute inset-0 bg-violet-500/0 group-hover:bg-violet-500/10 active:bg-violet-500/20 transition-colors duration-150" />
+          </div>
+
+          {/* Output Panel — height controlled by drag */}
+          <div
+            className="flex-shrink-0 overflow-hidden"
+            style={{ height: outputHeight }}
+          >
             <Output
               output={output}
               isRunning={isRunning}
@@ -183,6 +225,26 @@ const handleVideoToggle = () => {
             />
           </div>
         </div>
+
+        {/* Right Side — Video + AI Chat */}
+        <div className="w-96 border-l border-white/10 flex flex-col flex-shrink-0">
+
+          {/* Video Call */}
+          {showVideo && (
+            <div className="h-56 border-b border-white/10 flex-shrink-0">
+              <VideoCall
+                roomId={room.id}
+                onClose={() => setShowVideo(false)}
+              />
+            </div>
+          )}
+
+          {/* AI Chat */}
+          <div className="flex-1 overflow-hidden">
+            <AIChat />
+          </div>
+        </div>
+
       </div>
     </div>
   );
