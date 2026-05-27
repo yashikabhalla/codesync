@@ -10,6 +10,7 @@ import VideoCall from "./VideoCall";
 import { Button } from "@/components/ui/button";
 import { useStorage, useMutation } from "@/liveblocks.config";
 import AIChat from "./AIChat";
+import { Circle, Square } from "lucide-react";
 
 interface Room {
   id: string;
@@ -34,6 +35,11 @@ function RoomContent({ room, user, isPro = false }: Props) {
   const [code, setCode] = useState("");
   const [showVideo, setShowVideo] = useState(false);
 
+  // Session recording
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
   // Output vertical resize
   const [outputHeight, setOutputHeight] = useState(250);
   const isOutputDragging = useRef(false);
@@ -47,7 +53,7 @@ function RoomContent({ room, user, isPro = false }: Props) {
   const rightDragStartWidth = useRef(384);
 
   // Video panel vertical resize inside right panel
-  const [videoHeight, setVideoHeight] = useState(224); // h-56 = 224px
+  const [videoHeight, setVideoHeight] = useState(224);
   const isVideoDragging = useRef(false);
   const videoDragStartY = useRef(0);
   const videoDragStartHeight = useRef(224);
@@ -72,6 +78,73 @@ function RoomContent({ room, user, isPro = false }: Props) {
   const updateCode = useMutation(
     ({ storage }, newCode: string) => { storage.set("code", newCode); }, []
   );
+
+  // Session recording handlers
+  const startRecording = async () => {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+  video: true,
+  audio: true, // captures tab/system audio
+});
+
+const micStream = await navigator.mediaDevices.getUserMedia({
+  audio: true, // captures microphone
+}).catch(() => null); // if mic denied, continue without it
+
+// Combine screen + mic tracks
+const tracks = [
+  ...screenStream.getTracks(),
+  ...(micStream ? micStream.getAudioTracks() : []),
+];
+const stream = new MediaStream(tracks);
+
+// Stop mic when screen share ends
+screenStream.getVideoTracks()[0].onended = () => {
+  if (mediaRecorderRef.current?.state === "recording") {
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+  }
+  micStream?.getTracks().forEach((t) => t.stop());
+};
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "video/webm;codecs=vp9",
+      });
+
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `session-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+        stream.getTracks().forEach((t) => t.stop());
+      };
+
+      // Auto-stop if user closes screen share via browser UI
+      
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start(1000);
+      setIsRecording(true);
+    } catch {
+      // User cancelled or permission denied
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
 
   // Output drag
   const onOutputDragMouseDown = useCallback((e: React.MouseEvent) => {
@@ -104,7 +177,6 @@ function RoomContent({ room, user, isPro = false }: Props) {
     const onMouseMove = (e: MouseEvent) => {
       if (isOutputDragging.current) {
         const delta = outputDragStartY.current - e.clientY;
-        // min 0 — fully collapsible
         const newHeight = Math.min(500, Math.max(0, outputDragStartHeight.current + delta));
         setOutputHeight(newHeight);
       }
@@ -114,7 +186,7 @@ function RoomContent({ room, user, isPro = false }: Props) {
         setRightWidth(newWidth);
       }
       if (isVideoDragging.current) {
-        const delta = e.clientY - videoDragStartY.current; // drag down = taller video
+        const delta = e.clientY - videoDragStartY.current;
         const newHeight = Math.min(500, Math.max(80, videoDragStartHeight.current + delta));
         setVideoHeight(newHeight);
       }
@@ -136,16 +208,32 @@ function RoomContent({ room, user, isPro = false }: Props) {
     };
   }, []);
 
-  // Reset video height when video is toggled off
   useEffect(() => {
     if (!showVideo) setVideoHeight(224);
   }, [showVideo]);
 
-  const handleVideoToggle = () => {
-    const newState = !showVideo;
-    setShowVideo(newState);
+const handleVideoToggle = () => {
+  // Free users cannot use video calling
+  if (!isPro) {
+    alert(
+      "⚡ Video calling is a Pro feature. Upgrade to Pro to use video calls!"
+    );
+    return;
+  }
+
+  // Toggle state
+  const newState = !showVideo;
+
+  // Update local state
+  setShowVideo(newState);
+
+  // Safely update shared state
+  try {
     updateVideoCall(newState);
-  };
+  } catch (error) {
+    console.log("Liveblocks storage not ready yet");
+  }
+};
 
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode);
@@ -204,18 +292,51 @@ function RoomContent({ room, user, isPro = false }: Props) {
         </div>
       )}
 
-      {/* Toolbar */}
-      <Toolbar
-        room={room}
-        user={user}
-        language={language}
-        onLanguageChange={handleLanguageChange}
-        onRunCode={handleRunCode}
-        isRunning={isRunning}
-        presenceIndicators={<PresenceIndicators />}
-        onVideoToggle={handleVideoToggle}
-        isVideoOn={showVideo}
-      />
+      {/* Toolbar + Recording button */}
+      <div className="flex items-center flex-shrink-0">
+        <div className="flex-1">
+          <Toolbar
+  room={room}
+  user={user}
+  language={language}
+  onLanguageChange={handleLanguageChange}
+  onRunCode={handleRunCode}
+  isRunning={isRunning}
+  presenceIndicators={<PresenceIndicators />}
+  onVideoToggle={handleVideoToggle}
+  isVideoOn={showVideo}
+  userPlan={isPro ? "pro" : "free"}
+/>
+        </div>
+
+        {/* Session Recording — Pro only, sits right of toolbar */}
+        {isPro && (
+          <div className="relative group flex-shrink-0 pr-3 bg-gray-950 border-b border-white/10 h-14 flex items-center">
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
+                isRecording
+                  ? "text-red-400 hover:text-red-300 bg-red-400/10"
+                  : "text-gray-400 hover:text-white hover:bg-white/10"
+              }`}
+              title={isRecording ? "Stop Recording" : "Record Session"}
+            >
+              {isRecording ? (
+                <span className="relative flex items-center justify-center">
+                  <Square className="h-3.5 w-3.5 fill-red-400 text-red-400" />
+                  <span className="absolute h-5 w-5 rounded-full border border-red-400 animate-ping opacity-60" />
+                </span>
+              ) : (
+                <Circle className="h-3.5 w-3.5" />
+              )}
+            </button>
+            {/* Tooltip */}
+            <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 text-gray-200 text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              {isRecording ? "Stop Recording" : "Record Session"}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Main Area */}
       <div className="flex-1 flex overflow-hidden">
@@ -245,7 +366,7 @@ function RoomContent({ room, user, isPro = false }: Props) {
             <div className="absolute inset-0 bg-violet-500/0 group-hover:bg-violet-500/10 active:bg-violet-500/20 transition-colors duration-150" />
           </div>
 
-          {/* Output Panel — min 0, fully collapsible */}
+          {/* Output Panel */}
           <div className="flex-shrink-0 overflow-hidden" style={{ height: outputHeight }}>
             <Output output={output} isRunning={isRunning} hasError={outputError} />
           </div>
@@ -267,8 +388,7 @@ function RoomContent({ room, user, isPro = false }: Props) {
         {/* Right — Video + AI Chat */}
         <div className="flex flex-col flex-shrink-0 overflow-hidden" style={{ width: rightWidth }}>
 
-          {/* Video Call — resizable height */}
-          {showVideo && (
+          {showVideo && isPro && (
             <>
               <div className="flex-shrink-0 overflow-hidden" style={{ height: videoHeight }}>
                 <VideoCall roomId={room.id} onClose={() => setShowVideo(false)} />
@@ -289,7 +409,7 @@ function RoomContent({ room, user, isPro = false }: Props) {
             </>
           )}
 
-          {/* AI Chat — takes remaining space */}
+          {/* AI Chat */}
           <div className="flex-1 overflow-hidden">
             <AIChat isPro={isPro} />
           </div>

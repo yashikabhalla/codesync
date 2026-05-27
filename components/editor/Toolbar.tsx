@@ -42,6 +42,7 @@ interface Props {
   presenceIndicators?: React.ReactNode;
   onVideoToggle: () => void;
   isVideoOn: boolean;
+  userPlan: "free" | "pro";
 }
 
 export default function Toolbar({
@@ -54,6 +55,7 @@ export default function Toolbar({
   presenceIndicators,
   onVideoToggle,
   isVideoOn,
+  userPlan,
 }: Props) {
   const [copied, setCopied] = useState(false);
 
@@ -99,21 +101,22 @@ export default function Toolbar({
           <SelectTrigger className="w-36 bg-gray-800 border-gray-700 text-white h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent 
+
+          <SelectContent
             className="bg-gray-800 border-gray-700"
             position="popper"
             sideOffset={5}
-            >
+          >
             {languages.map((lang) => (
-            <SelectItem
-            key={lang.value}
-            value={lang.value}
-            className="text-white hover:bg-gray-700 text-sm cursor-pointer"
-            >
-            {lang.label}
-    </SelectItem>
-  ))}
-</SelectContent>
+              <SelectItem
+                key={lang.value}
+                value={lang.value}
+                className="text-white hover:bg-gray-700 text-sm cursor-pointer"
+              >
+                {lang.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
 
         {/* Run Button */}
@@ -138,25 +141,44 @@ export default function Toolbar({
       </div>
 
       {/* Right Side */}
-      {/* Right Side */}
-<div className="flex items-center gap-3">
-    {presenceIndicators}
-          {/* Video Call Button */}
+      <div className="flex items-center gap-3">
+        {presenceIndicators}
+
+        {/* Video Call Button */}
+{/* Video Call Button */}
 <Button
   variant="ghost"
   size="sm"
-  onClick={onVideoToggle}
+  onClick={() => {
+    if (userPlan === "free") {
+      alert(
+        "⚡ Video calling is a Pro feature. Upgrade to Pro to use video calls!"
+      );
+      return;
+    }
+
+    onVideoToggle();
+  }}
   className={`gap-2 hidden md:flex ${
-    isVideoOn
-      ? "text-violet-400 bg-violet-400/10"
+    userPlan === "free"
+      ? "opacity-50 cursor-not-allowed text-gray-500"
+      : isVideoOn
+      ? "text-red-400 bg-red-400/10 hover:bg-red-400/20"
       : "text-gray-400 hover:text-white"
   }`}
 >
   <Video className="w-3 h-3" />
+
   <span className="text-xs">
-    {isVideoOn ? "End Video" : "Start Video"}
+    {userPlan === "free"
+      ? "Pro Feature"
+      : isVideoOn
+      ? "End Video"
+      : "Start Video"}
   </span>
 </Button>
+
+        {/* Share Button */}
         <Button
           variant="ghost"
           size="sm"
